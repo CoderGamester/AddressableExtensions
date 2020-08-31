@@ -1,0 +1,12 @@
+{
+  "name": "com.gamelovers.addressablesextensions",
+  "displayName": "Addressables Extensions",
+  "version": "0.1.0",
+  "unity": "2019.3",
+  "description": "This package extends the loading functionality of assets from Unity Addressables with the possibility to generate new info about each asset addressable.\n\nThe asset info generator can be executed in Tools > Generate AddressableIds",
+  "type": "library",
+  "hideInEditor": false,
+  "dependencies": {
+    "com.unity.addressables": "1.15.1"
+  }
+}
