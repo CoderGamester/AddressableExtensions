@@ -76,7 +76,7 @@ namespace GameLoversEditor.AddressablesExtensions
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("using System.Collections.Generic;");
 			stringBuilder.AppendLine("using System.Collections.ObjectModel;");
-			stringBuilder.AppendLine("using GameLovers.AssetLoader;");
+			stringBuilder.AppendLine("using GameLovers.AddressablesExtensions;");
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("// ReSharper disable InconsistentNaming");
 			stringBuilder.AppendLine("// ReSharper disable once CheckNamespace");
