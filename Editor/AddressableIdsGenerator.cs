@@ -133,6 +133,11 @@ namespace GameLoversEditor.AddressablesExtensions
 			stringBuilder.AppendLine("\t\t{");
 			stringBuilder.AppendLine("\t\t\treturn _addressableLabelMap[label];");
 			stringBuilder.AppendLine("\t\t}");
+			stringBuilder.AppendLine("");
+			stringBuilder.AppendLine($"\t\tpublic static string ToLabelString(this AddressableLabel label)");
+			stringBuilder.AppendLine("\t\t{");
+			stringBuilder.AppendLine("\t\t\treturn _addressableLabels[(int) label];");
+			stringBuilder.AppendLine("\t\t}");
 		}
 
 		private static void GenerateLabelMap(StringBuilder stringBuilder, IDictionary<string, IList<AddressableAssetEntry>> assetLabelMap)
