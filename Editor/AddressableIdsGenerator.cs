@@ -252,8 +252,17 @@ namespace GameLoversEditor.AddressablesExtensions
 
 		private static void GenerateAddressEnums(StringBuilder stringBuilder, IReadOnlyList<AddressableAssetEntry> assetList)
 		{
+			var addedNames = new List<string>();
+			
 			for (var i = 0; i < assetList.Count; i++)
 			{
+				var name = GetCleanName(assetList[i].address, true);
+				var filetype = assetList[i].address.Substring(assetList[i].address.LastIndexOf('.') + 1);
+
+				name = addedNames.Contains(name) ? $"{name}_{filetype}" : name;
+				
+				addedNames.Add(name);
+				
 				stringBuilder.Append("\t\t");
 				stringBuilder.Append(GetCleanName(assetList[i].address, true));
 				stringBuilder.Append(i + 1 == assetList.Count ? "\n" : ",\n");
