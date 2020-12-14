@@ -288,6 +288,7 @@ namespace GameLoversEditor.AddressablesExtensions
 			name = name.Replace("/", charReplace);
 			name = name.Replace("\\", charReplace);
 			name = name.Replace(" ", charReplace);
+			name = name.Replace("-", charReplace);
 
 			return name;
 		}
