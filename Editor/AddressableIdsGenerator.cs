@@ -16,6 +16,7 @@ namespace GameLoversEditor.AddressablesExtensions
 	public static class AddressableIdsGenerator
 	{
 		private const string _objectName = "AddressableId";
+		private const string _namespace = "GameLovers.Game.Ids";
 		
 		[MenuItem("Tools/Generate AddressableIds")]
 		private static void GenerateAddressableIds()
@@ -71,7 +72,6 @@ namespace GameLoversEditor.AddressablesExtensions
 			var paths = new List<string>();
 
 			ProcessData(assetList, labelMap, paths);
-			
 			stringBuilder.AppendLine("/* AUTO GENERATED CODE */");
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("using System.Collections.Generic;");
@@ -81,7 +81,7 @@ namespace GameLoversEditor.AddressablesExtensions
 			stringBuilder.AppendLine("// ReSharper disable InconsistentNaming");
 			stringBuilder.AppendLine("// ReSharper disable once CheckNamespace");
 			stringBuilder.AppendLine("");
-			stringBuilder.AppendLine("namespace Ids");
+			stringBuilder.AppendLine($"namespace {_namespace}Ids");
 			stringBuilder.AppendLine("{");
 			
 			stringBuilder.AppendLine($"\tpublic enum {_objectName}");
@@ -262,7 +262,7 @@ namespace GameLoversEditor.AddressablesExtensions
 				name = addedNames.Contains(name) ? $"{name}_{filetype}" : name;
 				
 				addedNames.Add(name);
-				
+
 				stringBuilder.Append("\t\t");
 				stringBuilder.Append(GetCleanName(assetList[i].address, true));
 				stringBuilder.Append(i + 1 == assetList.Count ? "\n" : ",\n");
