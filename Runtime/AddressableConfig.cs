@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 // ReSharper disable once CheckNamespace
 
-namespace GameLovers.AddressablesExtensions
+namespace GameLovers.AssetsImporter
 {
 	/// <summary>
 	/// Represents a configuration of an Addressable with all it's important data
@@ -19,7 +19,7 @@ namespace GameLovers.AddressablesExtensions
 		public string AssetFileType;
 		public Type AssetType;
 		public ReadOnlyCollection<string> Labels;
-		
+
 		public AddressableConfig(int id, string address, string path, Type assetType, string[] labels)
 		{
 			Id = id;
@@ -41,7 +41,7 @@ namespace GameLovers.AddressablesExtensions
 			if (AssetType != typeof(UnityEngine.SceneManagement.Scene))
 			{
 				throw new InvalidOperationException($"This {nameof(AddressableConfig)} is not of a " +
-				                                    $"{typeof(UnityEngine.SceneManagement.Scene)} config type. It's of {AssetType.Name} type.");
+													$"{typeof(UnityEngine.SceneManagement.Scene)} config type. It's of {AssetType.Name} type.");
 			}
 
 			var index = Address.LastIndexOf("/", StringComparison.Ordinal);

@@ -1,14 +1,14 @@
+using GameLovers.AssetsImporter;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using GameLovers.AddressablesExtensions;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 
 // ReSharper disable once CheckNamespace
 
-namespace GameLoversEditor.AddressablesExtensions
+namespace GameLoversEditor.AssetsImporter
 {
 	/// <summary>
 	/// Generates the Addressable Ids into a script file

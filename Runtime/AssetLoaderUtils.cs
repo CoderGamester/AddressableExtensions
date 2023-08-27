@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.AddressablesExtensions
+namespace GameLovers.AssetsImporter
 {
 	/// <summary>
 	/// Helper class with util improvements for loading methods
@@ -25,13 +25,13 @@ namespace GameLovers.AddressablesExtensions
 			var buckets = new TaskCompletionSource<Task<T>>[inputTasks.Count];
 			var results = new Task<Task<T>>[buckets.Length];
 			var nextTaskIndex = -1;
-			
-			for (var i = 0; i < buckets.Length; i++) 
+
+			for (var i = 0; i < buckets.Length; i++)
 			{
 				buckets[i] = new TaskCompletionSource<Task<T>>();
 				results[i] = buckets[i].Task;
 			}
-			
+
 			foreach (var inputTask in inputTasks)
 			{
 				inputTask.ContinueWith(Continuation, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
