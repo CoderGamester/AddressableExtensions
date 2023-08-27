@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 
 // ReSharper disable once CheckNamespace
 
-namespace GameLovers.AddressablesExtensions
+namespace GameLovers.AssetsImporter
 {
 	/// <summary>
 	/// The asset loader to use with Addressables
@@ -15,9 +15,9 @@ namespace GameLovers.AddressablesExtensions
 	public class AddressablesAssetLoader : IAssetLoader, ISceneLoader
 	{
 		/// <inheritdoc />
-		public async Task<T> LoadAssetAsync<T>(string path)
-		{			
-			var operation = Addressables.LoadAssetAsync<T>(path);
+		public async Task<T> LoadAssetAsync<T>(object key)
+		{
+			var operation = Addressables.LoadAssetAsync<T>(key);
 
 			await operation.Task;
 
@@ -25,47 +25,41 @@ namespace GameLovers.AddressablesExtensions
 			{
 				throw operation.OperationException;
 			}
-			
+
 			return operation.Result;
 		}
 
 		/// <inheritdoc />
-		public async Task<GameObject> InstantiatePrefabAsync(string path, Transform parent, bool instantiateInWorldSpace)
+		public async Task<GameObject> InstantiateAsync(object key, Transform parent, bool instantiateInWorldSpace)
 		{
-			return await InstantiatePrefabAsync(path, new InstantiationParameters(parent, instantiateInWorldSpace));
+			return await InstantiatePrefabAsync(key, new InstantiationParameters(parent, instantiateInWorldSpace));
 		}
 
 		/// <inheritdoc />
-		public async Task<GameObject> InstantiatePrefabAsync(string path, Vector3 position, Quaternion rotation, Transform parent)
+		public async Task<GameObject> InstantiateAsync(object key, Vector3 position, Quaternion rotation, Transform parent)
 		{
-			return await InstantiatePrefabAsync(path, new InstantiationParameters(position, rotation, parent));
+			return await InstantiatePrefabAsync(key, new InstantiationParameters(position, rotation, parent));
 		}
 
 		/// <inheritdoc />
 		public void UnloadAsset<T>(T asset)
 		{
 			Addressables.Release(asset);
-
-			var gameObject = asset as GameObject;
-			if (gameObject != null)
-			{
-				UnityEngine.Object.Destroy(gameObject);
-			}
 		}
 
 		/// <inheritdoc />
 		public async Task<Scene> LoadSceneAsync(string path, LoadSceneMode loadMode = LoadSceneMode.Single, bool activateOnLoad = true)
 		{
 			var operation = Addressables.LoadSceneAsync(path, loadMode, activateOnLoad);
-		
+
 			await operation.Task;
 
 			if (operation.Status != AsyncOperationStatus.Succeeded)
 			{
 				throw operation.OperationException;
-			
+
 			}
-		
+
 			return operation.Result.Scene;
 
 		}
@@ -82,13 +76,13 @@ namespace GameLovers.AddressablesExtensions
 		{
 			while (!operation.isDone)
 			{
-				await Task.Delay(100);
+				await Task.Yield();
 			}
 		}
-	
-		private async Task<GameObject> InstantiatePrefabAsync(string path, InstantiationParameters instantiateParameters = new InstantiationParameters())
+
+		private async Task<GameObject> InstantiatePrefabAsync(object key, InstantiationParameters instantiateParameters = new InstantiationParameters())
 		{
-			var operation = Addressables.InstantiateAsync(path, instantiateParameters);
+			var operation = Addressables.InstantiateAsync(key, instantiateParameters);
 
 			await operation.Task;
 
@@ -96,7 +90,7 @@ namespace GameLovers.AddressablesExtensions
 			{
 				throw operation.OperationException;
 			}
-			
+
 			return operation.Result;
 		}
 	}
