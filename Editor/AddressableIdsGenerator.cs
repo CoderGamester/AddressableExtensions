@@ -16,32 +16,33 @@ namespace GameLoversEditor.AssetsImporter
 	public static class AddressableIdsGenerator
 	{
 		private const string _objectName = "AddressableId";
-		private const string _namespace = "GameLovers.Game.Ids";
-		
+		private const string _namespace = "FirstLight.Game.Ids";
+		private const string _generateLabel = "GenerateIds";
+
 		[MenuItem("Tools/Generate AddressableIds")]
 		private static void GenerateAddressableIds()
 		{
 			var assetList = GetAssetList();
-			var script = GenerateScript(assetList);
-			
-			SaveScript(script);
+
+			ProcessData(assetList, out var labelMap, out var paths);
+			GenerateScript(assetList, labelMap, paths);
 
 			AssetDatabase.Refresh();
 		}
-		
+
 		private static List<AddressableAssetEntry> GetAssetList()
 		{
 			var assetList = new List<AddressableAssetEntry>();
 			var assetsSettings = AddressableAssetSettingsDefaultObject.Settings;
-			
+
 			foreach (var settingsGroup in assetsSettings.groups)
 			{
 				if (settingsGroup.ReadOnly)
 				{
 					continue;
 				}
-				
-				settingsGroup.GatherAllAssets(assetList, true, true, true);
+
+				settingsGroup.GatherAllAssets(assetList, true, true, false);
 			}
 
 			return assetList;
@@ -65,42 +66,41 @@ namespace GameLoversEditor.AssetsImporter
 			File.WriteAllText(scriptPath, scriptString);
 		}
 
-		private static string GenerateScript(IReadOnlyList<AddressableAssetEntry> assetList)
+		private static void GenerateScript(List<AddressableAssetEntry> assetList,
+											 Dictionary<string, IList<AddressableAssetEntry>> labelMap,
+											 List<string> paths)
 		{
 			var stringBuilder = new StringBuilder();
-			var labelMap = new Dictionary<string, IList<AddressableAssetEntry>>();
-			var paths = new List<string>();
 
-			ProcessData(assetList, labelMap, paths);
 			stringBuilder.AppendLine("/* AUTO GENERATED CODE */");
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("using System.Collections.Generic;");
 			stringBuilder.AppendLine("using System.Collections.ObjectModel;");
-			stringBuilder.AppendLine("using GameLovers.AddressablesExtensions;");
+			stringBuilder.AppendLine("using FirstLight.AddressablesExtensions;");
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("// ReSharper disable InconsistentNaming");
 			stringBuilder.AppendLine("// ReSharper disable once CheckNamespace");
 			stringBuilder.AppendLine("");
-			stringBuilder.AppendLine($"namespace {_namespace}Ids");
+			stringBuilder.AppendLine($"namespace {_namespace}");
 			stringBuilder.AppendLine("{");
-			
+
 			stringBuilder.AppendLine($"\tpublic enum {_objectName}");
 			stringBuilder.AppendLine("\t{");
 			GenerateAddressEnums(stringBuilder, assetList);
 			stringBuilder.AppendLine("\t}");
-			
+
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("\tpublic enum AddressableLabel");
 			stringBuilder.AppendLine("\t{");
 			GenerateLabelEnums(stringBuilder, new List<string>(labelMap.Keys));
 			stringBuilder.AppendLine("\t}");
-			
+
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("\tpublic static class AddressablePathLookup");
 			stringBuilder.AppendLine("\t{");
 			GeneratePaths(stringBuilder, paths);
 			stringBuilder.AppendLine("\t}");
-			
+
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("\tpublic static class AddressableConfigLookup");
 			stringBuilder.AppendLine("\t{");
@@ -108,10 +108,10 @@ namespace GameLoversEditor.AssetsImporter
 			GenerateLabelMap(stringBuilder, labelMap);
 			GenerateConfigs(stringBuilder, assetList);
 			stringBuilder.AppendLine("\t}");
-			
+
 			stringBuilder.AppendLine("}");
 
-			return stringBuilder.ToString();
+			SaveScript(stringBuilder.ToString());
 		}
 
 		private static void GenerateLoopUpMethods(StringBuilder stringBuilder)
@@ -150,7 +150,7 @@ namespace GameLoversEditor.AssetsImporter
 			{
 				stringBuilder.AppendLine($"\t\t\t{GenerateLabels(new List<string>(assetLabelMap.Keys))}");
 			}
-			
+
 			stringBuilder.AppendLine("\t\t}.AsReadOnly();");
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine($"\t\tprivate static readonly IReadOnlyDictionary<string, IList<{nameof(AddressableConfig)}>> _addressableLabelMap = new ReadOnlyDictionary<string, IList<{nameof(AddressableConfig)}>>(new Dictionary<string, IList<{nameof(AddressableConfig)}>>");
@@ -160,7 +160,7 @@ namespace GameLoversEditor.AssetsImporter
 			{
 				stringBuilder.AppendLine($"\t\t\t{{\"{labelMap.Key}\", new List<{nameof(AddressableConfig)}>");
 				stringBuilder.AppendLine("\t\t\t\t{");
-				
+
 				for (var i = 0; i < labelMap.Value.Count; i++)
 				{
 					stringBuilder.AppendLine($"\t\t\t\t\t{GenerateAddressableConfig(labelMap.Value[i], i)},");
@@ -198,12 +198,12 @@ namespace GameLoversEditor.AssetsImporter
 		private static string GenerateLabels(IList<string> labels)
 		{
 			var stringBuilder = new StringBuilder();
-			
+
 			if (labels.Count == 0)
 			{
 				stringBuilder.Append("\"\"");
 			}
-			
+
 			for (var i = 0; i < labels.Count; i++)
 			{
 				stringBuilder.Append($"\"{labels[i]}\"");
@@ -218,34 +218,49 @@ namespace GameLoversEditor.AssetsImporter
 			var asseType = AssetDatabase.GetMainAssetTypeAtPath(addressableAssetEntry.AssetPath);
 
 			asseType = asseType == typeof(UnityEditor.SceneAsset) ? typeof(UnityEngine.SceneManagement.Scene) : asseType;
-			
+
 			return $"new {nameof(AddressableConfig)}({index.ToString()}, \"{addressableAssetEntry.address}\", \"{addressableAssetEntry.AssetPath}\", " +
-			       $"typeof({asseType}), new [] {{{GenerateLabels(new List<string>(addressableAssetEntry.labels))}}})";
+				   $"typeof({asseType}), new [] {{{GenerateLabels(new List<string>(addressableAssetEntry.labels))}}})";
 		}
 
-		private static void ProcessData(IReadOnlyList<AddressableAssetEntry> assetList,
-			IDictionary<string, IList<AddressableAssetEntry>> labelMap, ICollection<string> paths)
+		private static void ProcessData(IList<AddressableAssetEntry> assetList,
+										out Dictionary<string, IList<AddressableAssetEntry>> labelMap,
+										out List<string> paths)
 		{
-			for (var i = 0; i < assetList.Count; i++)
+			labelMap = new Dictionary<string, IList<AddressableAssetEntry>>();
+			paths = new List<string>();
+
+			for (var i = assetList.Count - 1; i > -1; --i)
 			{
-				var address = assetList[i].address;
-				var pathLastCharIndex = address.Replace('\\', '/').LastIndexOf('/');
-				var path = pathLastCharIndex < 0 ? address : address.Substring(0,  pathLastCharIndex);
-
-				if (!paths.Contains(path))
-				{
-					paths.Add(path);
-				}
-
 				foreach (var label in assetList[i].labels)
 				{
+					if (label != _generateLabel)
+					{
+						continue;
+					}
+
 					if (!labelMap.TryGetValue(label, out var list))
 					{
 						list = new List<AddressableAssetEntry>();
 						labelMap.Add(label, list);
 					}
-					
+
 					list.Add(assetList[i]);
+				}
+
+				if (!assetList[i].labels.Contains(_generateLabel))
+				{
+					assetList.RemoveAt(i);
+					continue;
+				}
+
+				var address = assetList[i].address;
+				var pathLastCharIndex = address.Replace('\\', '/').LastIndexOf('/');
+				var path = pathLastCharIndex < 0 ? address : address.Substring(0, pathLastCharIndex);
+
+				if (!paths.Contains(path))
+				{
+					paths.Add(path);
 				}
 			}
 		}
@@ -253,14 +268,14 @@ namespace GameLoversEditor.AssetsImporter
 		private static void GenerateAddressEnums(StringBuilder stringBuilder, IReadOnlyList<AddressableAssetEntry> assetList)
 		{
 			var addedNames = new List<string>();
-			
+
 			for (var i = 0; i < assetList.Count; i++)
 			{
 				var name = GetCleanName(assetList[i].address, true);
 				var filetype = assetList[i].address.Substring(assetList[i].address.LastIndexOf('.') + 1);
 
 				name = addedNames.Contains(name) ? $"{name}_{filetype}" : name;
-				
+
 				addedNames.Add(name);
 
 				stringBuilder.Append("\t\t");
@@ -278,12 +293,12 @@ namespace GameLoversEditor.AssetsImporter
 				stringBuilder.Append(i + 1 == labels.Count ? "\n" : ",\n");
 			}
 		}
-		
+
 		private static string GetCleanName(string name, bool withUnderscore)
 		{
 			var index = name.LastIndexOf('.');
 			var charReplace = withUnderscore ? "_" : "";
-			
+
 			name = index < 0 ? name : name.Substring(0, index);
 			name = name.Replace("/", charReplace);
 			name = name.Replace("\\", charReplace);

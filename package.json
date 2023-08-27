@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "unity": "2021.4",
   "license": "MIT",
-  "description": "This package extends the loading functionality of assets from Unity Addressables with the possibility to generate new info about each asset addressable.\n\nThe asset info generator can be executed in Tools > Generate AddressableIds",
+  "description": "This package extends the loading functionality of assets from Unity Addressables with the possibility to generate new info about each asset addressable.\nThis package also gives flexibitlity to extend the asset import pipeline to have many scriptable objects to include weaklinks of every asset in the game, separated by type.\n\nThe asset info generator can be executed in Tools > Generate AddressableIds",
   "type": "library",
   "hideInEditor": false,
   "dependencies": {
