@@ -5,29 +5,52 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
+using UnityEngine;
 
 // ReSharper disable once CheckNamespace
 
 namespace GameLoversEditor.AssetsImporter
 {
 	/// <summary>
-	/// Generates the Addressable Ids into a script file
+	/// Customizes the visual inspector of the Addressable Ids Generator settings asset <seealso cref="AddressablesIdGeneratorSettings"/>
 	/// </summary>
-	public static class AddressableIdsGenerator
+	[CustomEditor(typeof(AddressablesIdGeneratorSettings))]
+	public class AddressablesIdGeneratorSettingsEditor : Editor
 	{
-		private const string _objectName = "AddressableId";
-		private const string _namespace = "FirstLight.Game.Ids";
-		private const string _generateLabel = "GenerateIds";
-
-		[MenuItem("Tools/Generate AddressableIds")]
+		[MenuItem("Tools/AddressableIds Generator/Generate AddressableIds")]
 		private static void GenerateAddressableIds()
 		{
 			var assetList = GetAssetList();
+			var settings = AddressablesIdGeneratorSettings.SelectSheetImporter();
 
-			ProcessData(assetList, out var labelMap, out var paths);
-			GenerateScript(assetList, labelMap, paths);
+			ProcessData(assetList, settings, out var labelMap, out var paths);
+			GenerateScript(assetList, settings, labelMap, paths);
 
 			AssetDatabase.Refresh();
+		}
+
+		/// <inheritdoc />
+		public override void OnInspectorGUI()
+		{
+			var settings = (AddressablesIdGeneratorSettings)target;
+			var guiContentFilename = new GUIContent("Script Filename",
+				"Put the script filename that will be generated with all Addressable Ids. " +
+				"This will be also the name of the Object in C# containing all the Addressable Ids and groups.");
+			var guiContentNamespace = new GUIContent("Script Namespace",
+				"Put the script namespace that the Addressable Ids object will be part of.");
+			var guiContentLabel = new GUIContent("Addressables Label",
+				"Put the label name that will be used to mark Addressables." +
+				"This mark is used to set what addressables will have ids generated in the new script." +
+				"NOTE: empty label = generate everything that are addressables");
+
+			settings.ScriptFilename = EditorGUILayout.TextField(guiContentFilename, settings.ScriptFilename);
+			settings.Namespace = EditorGUILayout.TextField(guiContentNamespace, settings.Namespace);
+			settings.AddressableLabel = EditorGUILayout.TextField(guiContentLabel, settings.AddressableLabel);
+
+			if (GUILayout.Button("Generate AddressableIds"))
+			{
+				GenerateAddressableIds();
+			}
 		}
 
 		private static List<AddressableAssetEntry> GetAssetList()
@@ -48,15 +71,15 @@ namespace GameLoversEditor.AssetsImporter
 			return assetList;
 		}
 
-		private static void SaveScript(string scriptString)
+		private static void SaveScript(string scriptString, AddressablesIdGeneratorSettings settings)
 		{
-			var scriptAssets = AssetDatabase.FindAssets($"t:Script {_objectName}");
-			var scriptPath = $"Assets/{_objectName}.cs";
+			var scriptAssets = AssetDatabase.FindAssets($"t:Script {settings.ScriptFilename}");
+			var scriptPath = $"Assets/{settings.ScriptFilename}.cs";
 
 			foreach (var scriptAsset in scriptAssets)
 			{
 				var path = AssetDatabase.GUIDToAssetPath(scriptAsset);
-				if (path.EndsWith($"/{_objectName}.cs"))
+				if (path.EndsWith($"/{settings.ScriptFilename}.cs"))
 				{
 					scriptPath = path;
 					break;
@@ -66,9 +89,8 @@ namespace GameLoversEditor.AssetsImporter
 			File.WriteAllText(scriptPath, scriptString);
 		}
 
-		private static void GenerateScript(List<AddressableAssetEntry> assetList,
-											 Dictionary<string, IList<AddressableAssetEntry>> labelMap,
-											 List<string> paths)
+		private static void GenerateScript(List<AddressableAssetEntry> assetList, AddressablesIdGeneratorSettings settings,
+											Dictionary<string, IList<AddressableAssetEntry>> labelMap, List<string> paths)
 		{
 			var stringBuilder = new StringBuilder();
 
@@ -76,15 +98,15 @@ namespace GameLoversEditor.AssetsImporter
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("using System.Collections.Generic;");
 			stringBuilder.AppendLine("using System.Collections.ObjectModel;");
-			stringBuilder.AppendLine("using FirstLight.AddressablesExtensions;");
+			stringBuilder.AppendLine("using GameLovers.AssetsImporter;");
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("// ReSharper disable InconsistentNaming");
 			stringBuilder.AppendLine("// ReSharper disable once CheckNamespace");
 			stringBuilder.AppendLine("");
-			stringBuilder.AppendLine($"namespace {_namespace}");
+			stringBuilder.AppendLine($"namespace {settings.Namespace}");
 			stringBuilder.AppendLine("{");
 
-			stringBuilder.AppendLine($"\tpublic enum {_objectName}");
+			stringBuilder.AppendLine($"\tpublic enum {settings.ScriptFilename}");
 			stringBuilder.AppendLine("\t{");
 			GenerateAddressEnums(stringBuilder, assetList);
 			stringBuilder.AppendLine("\t}");
@@ -104,22 +126,22 @@ namespace GameLoversEditor.AssetsImporter
 			stringBuilder.AppendLine("");
 			stringBuilder.AppendLine("\tpublic static class AddressableConfigLookup");
 			stringBuilder.AppendLine("\t{");
-			GenerateLoopUpMethods(stringBuilder);
+			GenerateLoopUpMethods(stringBuilder, settings);
 			GenerateLabelMap(stringBuilder, labelMap);
 			GenerateConfigs(stringBuilder, assetList);
 			stringBuilder.AppendLine("\t}");
 
 			stringBuilder.AppendLine("}");
 
-			SaveScript(stringBuilder.ToString());
+			SaveScript(stringBuilder.ToString(), settings);
 		}
 
-		private static void GenerateLoopUpMethods(StringBuilder stringBuilder)
+		private static void GenerateLoopUpMethods(StringBuilder stringBuilder, AddressablesIdGeneratorSettings settings)
 		{
 			stringBuilder.AppendLine($"\t\tpublic static IList<{nameof(AddressableConfig)}> Configs => _addressableConfigs;");
 			stringBuilder.AppendLine($"\t\tpublic static IList<string> Labels => _addressableLabels;");
 			stringBuilder.AppendLine("");
-			stringBuilder.AppendLine($"\t\tpublic static {nameof(AddressableConfig)} GetConfig(this {_objectName} addressable)");
+			stringBuilder.AppendLine($"\t\tpublic static {nameof(AddressableConfig)} GetConfig(this {settings.ScriptFilename} addressable)");
 			stringBuilder.AppendLine("\t\t{");
 			stringBuilder.AppendLine("\t\t\treturn _addressableConfigs[(int) addressable];");
 			stringBuilder.AppendLine("\t\t}");
@@ -223,35 +245,39 @@ namespace GameLoversEditor.AssetsImporter
 				   $"typeof({asseType}), new [] {{{GenerateLabels(new List<string>(addressableAssetEntry.labels))}}})";
 		}
 
-		private static void ProcessData(IList<AddressableAssetEntry> assetList,
-										out Dictionary<string, IList<AddressableAssetEntry>> labelMap,
-										out List<string> paths)
+		private static void ProcessData(IList<AddressableAssetEntry> assetList, AddressablesIdGeneratorSettings settings,
+										out Dictionary<string, IList<AddressableAssetEntry>> labelMap, out List<string> paths)
 		{
 			labelMap = new Dictionary<string, IList<AddressableAssetEntry>>();
 			paths = new List<string>();
 
 			for (var i = assetList.Count - 1; i > -1; --i)
 			{
-				foreach (var label in assetList[i].labels)
+				// empty label means generate everything
+				if(!string.IsNullOrEmpty(settings.AddressableLabel))
 				{
-					if (label != _generateLabel)
+					foreach (var label in assetList[i].labels)
 					{
+						if (label != settings.AddressableLabel)
+						{
+							continue;
+						}
+
+						if (!labelMap.TryGetValue(label, out var list))
+						{
+							list = new List<AddressableAssetEntry>();
+							labelMap.Add(label, list);
+						}
+
+						list.Add(assetList[i]);
+					}
+
+					// Check if is an asset to generate
+					if (!assetList[i].labels.Contains(settings.AddressableLabel))
+					{
+						assetList.RemoveAt(i);
 						continue;
 					}
-
-					if (!labelMap.TryGetValue(label, out var list))
-					{
-						list = new List<AddressableAssetEntry>();
-						labelMap.Add(label, list);
-					}
-
-					list.Add(assetList[i]);
-				}
-
-				if (!assetList[i].labels.Contains(_generateLabel))
-				{
-					assetList.RemoveAt(i);
-					continue;
 				}
 
 				var address = assetList[i].address;
