@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -13,26 +14,29 @@ namespace GameLovers.AssetsImporter
 		/// <summary>
 		/// Loads any asset of the given <typeparamref name="T"/> in the given <paramref name="key"/>.
 		/// To help the execution of this method is recommended to request the asset path from an <seealso cref="AddressableConfig"/>.
-		/// This method can be controlled in an async method and returns the asset loaded
+		/// Invokes <paramref name="onCompleteCallback"/> when the asset is loaded.
+		/// This method can be controlled in an async method and returns the asset loaded.
 		/// </summary>
-		Task<T> LoadAssetAsync<T>(object key);
+		Task<T> LoadAssetAsync<T>(object key, Action<T> onCompleteCallback = null);
 
 		/// <summary>
 		/// Loads and instantiates the prefab in the given <paramref name="key"/> with the given <paramref name="parent"/>
 		/// and the given <paramref name="instantiateInWorldSpace"/> to preserve the instance transform relative to world
 		/// space or relative to the parent.
 		/// To help the execution of this method is recommended to request the asset path from an <seealso cref="AddressableConfig"/>.
+		/// Invokes <paramref name="onCompleteCallback"/> when the asset is instantiated.
 		/// This method can be controlled in an async method and returns the prefab instantiated
 		/// </summary>
-		Task<GameObject> InstantiateAsync(object key, Transform parent, bool instantiateInWorldSpace);
+		Task<GameObject> InstantiateAsync(object key, Transform parent, bool instantiateInWorldSpace, Action<GameObject> onCompleteCallback = null);
 
 		/// <summary>
 		/// Loads and instantiates the prefab in the given <paramref name="key"/> with the given <paramref name="position"/>,
 		/// the given <paramref name="rotation"/> & the given <paramref name="parent"/>.
 		/// To help the execution of this method is recommended to request the asset path from an <seealso cref="AddressableConfig"/>.
+		/// Invokes <paramref name="onCompleteCallback"/> when the asset is instantiated.
 		/// This method can be controlled in an async method and returns the prefab instantiated
 		/// </summary>
-		Task<GameObject> InstantiateAsync(object key, Vector3 position, Quaternion rotation, Transform parent);
+		Task<GameObject> InstantiateAsync(object key, Vector3 position, Quaternion rotation, Transform parent, Action<GameObject> onCompleteCallback = null);
 
 		/// <summary>
 		/// Unloads the given <paramref name="asset"/> from the game memory.
