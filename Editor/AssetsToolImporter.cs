@@ -1,6 +1,7 @@
 using GameLovers.AssetsImporter;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEngine;
@@ -15,6 +16,8 @@ namespace GameLoversEditor.AssetsImporter
 	[CustomEditor(typeof(AssetsImporter))]
 	public class AssetsToolImporter : Editor
 	{
+		private const string TOGGLE_PATH = "Tools/Assets Importer/Toggle Auto Import On Refresh";
+
 		private static List<ImportData> _importers;
 		
 		private void Awake()
@@ -25,11 +28,34 @@ namespace GameLoversEditor.AssetsImporter
 		[DidReloadScripts]
 		public static void OnCompileScripts()
 		{
+			if(AssetsImporter.AutoImportOnRefresh)
+			{
+				_importers = GetAllImporters();
+			}
+		}
+
+		[MenuItem(TOGGLE_PATH)]
+		private static void ToggleAutoImport()
+		{
+			AssetsImporter.AutoImportOnRefresh = !AssetsImporter.AutoImportOnRefresh;
+			Menu.SetChecked(TOGGLE_PATH, AssetsImporter.AutoImportOnRefresh);
+		}
+
+		[MenuItem(TOGGLE_PATH, true)]
+		private static bool ValidateAutoImport()
+		{
+			Menu.SetChecked(TOGGLE_PATH, AssetsImporter.AutoImportOnRefresh);
+			return true;
+		}
+
+		[MenuItem("Tools/Assets Importer/Get All Importers")]
+		private static void ImportAllImporters()
+		{
 			_importers = GetAllImporters();
 		}
-		
+
 		[MenuItem("Tools/Assets Importer/Import Assets Data")]
-		private static void ImportAllGoogleSheetData()
+		private static void ImportAllAssetsData()
 		{
 			_importers = GetAllImporters();
 			
@@ -52,6 +78,8 @@ namespace GameLoversEditor.AssetsImporter
 
 			var typeCheck = typeof(IScriptableObjectImporter);
 			var tool = (AssetsImporter) target;
+
+			GUILayout.Toggle(AssetsImporter.AutoImportOnRefresh, "Toggle Auto Import on Refresh (Post Script Compilation)");
 			
 			if (GUILayout.Button("Import Assets Data"))
 			{
@@ -67,22 +95,24 @@ namespace GameLoversEditor.AssetsImporter
 			{
 				EditorGUILayout.Space();
 				EditorGUILayout.BeginHorizontal();
-				EditorGUILayout.PrefixLabel(importer.Type.Name);
-				
-				if (GUILayout.Button("Update Path"))
+				//EditorGUILayout.PrefixLabel(importer.Type.Name, GUIStyle.);
+				EditorGUILayout.LabelField(importer.Type.Name, EditorStyles.boldLabel);
+
+				if (GUILayout.Button(string.IsNullOrEmpty(importer.AssetsFolderPath) ? "Set Path" : "Update Path"))
 				{
 					var scriptableObject = GetScriptableObject(importer);
 
-					var path = EditorUtility.OpenFolderPanel("Select Folder Path", scriptableObject.AssetsFolderPath,
-					                                         "");
+					var path = EditorUtility.OpenFolderPanel("Select Folder Path", scriptableObject.AssetsFolderPath,"");
 					scriptableObject.AssetsFolderPath = path.Substring(path.IndexOf("Assets/", StringComparison.Ordinal));
-					
+					importer.AssetsFolderPath = scriptableObject.AssetsFolderPath;
+
 					importer.Importer.Import();
 					AssetDatabase.SaveAssets();
 					AssetDatabase.Refresh();
 				}
 				
 				EditorGUILayout.EndHorizontal();
+				EditorGUILayout.LabelField(string.IsNullOrEmpty(importer.AssetsFolderPath) ? "< NO PATH SET>" : importer.AssetsFolderPath);
 				EditorGUILayout.BeginHorizontal();
 				
 				if (GUILayout.Button("Import"))
@@ -140,10 +170,11 @@ namespace GameLoversEditor.AssetsImporter
 			return scriptableObject as AssetConfigsScriptableObject;
 		}
 
-		private struct ImportData
+		private class ImportData
 		{
 			public Type Type;
 			public IAssetConfigsImporter Importer;
+			public string AssetsFolderPath;
 		}
 	}
 }

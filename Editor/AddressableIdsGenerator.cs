@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 // ReSharper disable once CheckNamespace
 
@@ -240,6 +241,8 @@ namespace GameLoversEditor.AssetsImporter
 			var asseType = AssetDatabase.GetMainAssetTypeAtPath(addressableAssetEntry.AssetPath);
 
 			asseType = asseType == typeof(UnityEditor.SceneAsset) ? typeof(UnityEngine.SceneManagement.Scene) : asseType;
+			
+			Assert.IsNotNull(asseType, $"Failed to get asset type for {addressableAssetEntry.AssetPath}");
 
 			return $"new {nameof(AddressableConfig)}({index.ToString()}, \"{addressableAssetEntry.address}\", \"{addressableAssetEntry.AssetPath}\", " +
 				   $"typeof({asseType}), new [] {{{GenerateLabels(new List<string>(addressableAssetEntry.labels))}}})";

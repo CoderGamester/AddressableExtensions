@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -14,8 +15,44 @@ namespace GameLovers.AssetsImporter
 	/// </summary>
 	public class AddressablesAssetLoader : IAssetLoader, ISceneLoader
 	{
+		
+
+			/* AssetReference types
+			
+				GameObject
+				ScriptableObject
+				Texture
+				Texture3D
+				Texture2D
+				RenderTexture
+				CustomRenderTexture
+				CubeMap
+				Material
+				PhysicMaterial
+				PhysicMaterial2D
+				Sprite
+				SpriteAtlas
+				VideoClip
+				AudioClip
+				AudioMixer
+				Avatar
+				AnimatorController
+				AnimatorOverrideController
+				TextAsset
+				Mesh
+				Shader
+				ComputeShader
+				Flare
+				NavMeshData
+				TerrainData
+				TerrainLayer
+				Font
+				Scene
+				GUISkin
+			 * */
+			 
 		/// <inheritdoc />
-		public async Task<T> LoadAssetAsync<T>(object key)
+		public async Task<T> LoadAssetAsync<T>(object key, Action<T> onCompleteCallback = null)
 		{
 			var operation = Addressables.LoadAssetAsync<T>(key);
 
@@ -26,19 +63,31 @@ namespace GameLovers.AssetsImporter
 				throw operation.OperationException;
 			}
 
+			onCompleteCallback?.Invoke(operation.Result);
+
 			return operation.Result;
 		}
 
 		/// <inheritdoc />
-		public async Task<GameObject> InstantiateAsync(object key, Transform parent, bool instantiateInWorldSpace)
+		public async Task<GameObject> InstantiateAsync(object key, Transform parent, bool instantiateInWorldSpace, 
+			Action<GameObject> onCompleteCallback = null)
 		{
-			return await InstantiatePrefabAsync(key, new InstantiationParameters(parent, instantiateInWorldSpace));
+			var gameObject = await InstantiatePrefabAsync(key, new InstantiationParameters(parent, instantiateInWorldSpace));
+
+			onCompleteCallback?.Invoke(gameObject);
+
+			return gameObject;
 		}
 
 		/// <inheritdoc />
-		public async Task<GameObject> InstantiateAsync(object key, Vector3 position, Quaternion rotation, Transform parent)
+		public async Task<GameObject> InstantiateAsync(object key, Vector3 position, Quaternion rotation, Transform parent, 
+			Action<GameObject> onCompleteCallback = null)
 		{
-			return await InstantiatePrefabAsync(key, new InstantiationParameters(position, rotation, parent));
+			var gameObject = await InstantiatePrefabAsync(key, new InstantiationParameters(position, rotation, parent));
+
+			onCompleteCallback?.Invoke(gameObject);
+
+			return gameObject;
 		}
 
 		/// <inheritdoc />
