@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace GameLovers.AssetsImporter
 {
+	/// <summary>
 	/// Service to extend the behaviour to load assets into the project based on it's own custom needs
 	/// </summary>
 	public interface IAssetResolverService : IAssetLoader, ISceneLoader
@@ -170,7 +171,7 @@ namespace GameLovers.AssetsImporter
 																			  Action<TId, TAsset> onLoadCallback = null)
 		{
 			var list = new List<Pair<TId, TAsset>>();
-			var tasks = new List<UniTask<TAsset>>();
+			var tasks = new List<UniTask>();
 
 			if (!TryGetDictionary<TId, TAsset>(out var dictionary))
 			{
@@ -188,6 +189,8 @@ namespace GameLovers.AssetsImporter
 					list.Add(new Pair<TId, TAsset>(id, result));
 					onLoadCallback?.Invoke(id, result);
 				});
+
+				tasks.Add(task);
 
 				if (!loadAsynchronously)
 				{
