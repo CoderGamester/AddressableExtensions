@@ -2,7 +2,7 @@
   "name": "com.gamelovers.assetsimporter",
   "displayName": "Unity Assets Importer",
   "author": "Miguel Tomas",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "unity": "2022.3",
   "license": "MIT",
   "description": "This package extends the loading functionality of assets from Unity Addressables with the possibility to generate new info about each asset addressable.\nThis package also gives flexibitlity to extend the asset import pipeline to have many scriptable objects to include weaklinks of every asset in the game, separated by type.\n\nThe asset info generator can be executed in Tools > Generate AddressableIds",
@@ -11,6 +11,7 @@
   "dependencies": {
     "com.unity.addressables": "1.21.20",
     "com.gamelovers.dataextensions": "0.6.0",
-    "com.gamelovers.configsprovider": "0.1.1"
+    "com.gamelovers.configsprovider": "0.1.1",
+    "com.cysharp.unitask": "2.5.10"
   }
 }

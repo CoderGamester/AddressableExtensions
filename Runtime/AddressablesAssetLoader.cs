@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -14,49 +15,13 @@ namespace GameLovers.AssetsImporter
 	/// The asset loader to use with Addressables
 	/// </summary>
 	public class AddressablesAssetLoader : IAssetLoader, ISceneLoader
-	{
-		
-
-			/* AssetReference types
-			
-				GameObject
-				ScriptableObject
-				Texture
-				Texture3D
-				Texture2D
-				RenderTexture
-				CustomRenderTexture
-				CubeMap
-				Material
-				PhysicMaterial
-				PhysicMaterial2D
-				Sprite
-				SpriteAtlas
-				VideoClip
-				AudioClip
-				AudioMixer
-				Avatar
-				AnimatorController
-				AnimatorOverrideController
-				TextAsset
-				Mesh
-				Shader
-				ComputeShader
-				Flare
-				NavMeshData
-				TerrainData
-				TerrainLayer
-				Font
-				Scene
-				GUISkin
-			 * */
-			 
+	{			 
 		/// <inheritdoc />
-		public async Task<T> LoadAssetAsync<T>(object key, Action<T> onCompleteCallback = null)
+		public async UniTask<T> LoadAssetAsync<T>(object key, Action<T> onCompleteCallback = null)
 		{
 			var operation = Addressables.LoadAssetAsync<T>(key);
 
-			await operation.Task;
+			await operation.ToUniTask();
 
 			if (operation.Status != AsyncOperationStatus.Succeeded)
 			{
@@ -69,7 +34,7 @@ namespace GameLovers.AssetsImporter
 		}
 
 		/// <inheritdoc />
-		public async Task<GameObject> InstantiateAsync(object key, Transform parent, bool instantiateInWorldSpace, 
+		public async UniTask<GameObject> InstantiateAsync(object key, Transform parent, bool instantiateInWorldSpace, 
 			Action<GameObject> onCompleteCallback = null)
 		{
 			var gameObject = await InstantiatePrefabAsync(key, new InstantiationParameters(parent, instantiateInWorldSpace));
@@ -80,7 +45,7 @@ namespace GameLovers.AssetsImporter
 		}
 
 		/// <inheritdoc />
-		public async Task<GameObject> InstantiateAsync(object key, Vector3 position, Quaternion rotation, Transform parent, 
+		public async UniTask<GameObject> InstantiateAsync(object key, Vector3 position, Quaternion rotation, Transform parent, 
 			Action<GameObject> onCompleteCallback = null)
 		{
 			var gameObject = await InstantiatePrefabAsync(key, new InstantiationParameters(position, rotation, parent));
@@ -91,17 +56,25 @@ namespace GameLovers.AssetsImporter
 		}
 
 		/// <inheritdoc />
-		public void UnloadAsset<T>(T asset)
+		public async UniTask UnloadAssetAsync<T>(T asset, Action onCompleteCallback = null)
 		{
 			Addressables.Release(asset);
+			// Force a garbage collection and unload unused assets
+			GC.Collect();
+			GC.WaitForPendingFinalizers();
+
+			await Resources.UnloadUnusedAssets().ToUniTask();
+
+			onCompleteCallback?.Invoke();
 		}
 
 		/// <inheritdoc />
-		public async Task<Scene> LoadSceneAsync(string path, LoadSceneMode loadMode = LoadSceneMode.Single, bool activateOnLoad = true)
+		public async UniTask<Scene> LoadSceneAsync(string path, LoadSceneMode loadMode = LoadSceneMode.Single, 
+			bool activateOnLoad = true,	Action<Scene> onCompleteCallback = null)
 		{
 			var operation = Addressables.LoadSceneAsync(path, loadMode, activateOnLoad);
 
-			await operation.Task;
+			await operation.ToUniTask();
 
 			if (operation.Status != AsyncOperationStatus.Succeeded)
 			{
@@ -109,31 +82,36 @@ namespace GameLovers.AssetsImporter
 
 			}
 
+			onCompleteCallback?.Invoke(operation.Result.Scene);
+
 			return operation.Result.Scene;
 
 		}
 
 		/// <inheritdoc />
-		public async Task UnloadSceneAsync(Scene scene)
+		public async UniTask UnloadSceneAsync(Scene scene, Action onCompleteCallback = null)
 		{
 			var operation = SceneManager.UnloadSceneAsync(scene);
 
 			await AsyncOperation(operation);
+
+			onCompleteCallback?.Invoke();
 		}
 
-		private async Task AsyncOperation(AsyncOperation operation)
+		private async UniTask AsyncOperation(AsyncOperation operation)
 		{
 			while (!operation.isDone)
 			{
-				await Task.Yield();
+				await UniTask.Yield();
 			}
 		}
 
-		private async Task<GameObject> InstantiatePrefabAsync(object key, InstantiationParameters instantiateParameters = new InstantiationParameters())
+		private async UniTask<GameObject> InstantiatePrefabAsync(object key, 
+			InstantiationParameters instantiateParameters = new InstantiationParameters())
 		{
 			var operation = Addressables.InstantiateAsync(key, instantiateParameters);
 
-			await operation.Task;
+			await operation.ToUniTask();
 
 			if (operation.Status != AsyncOperationStatus.Succeeded)
 			{
