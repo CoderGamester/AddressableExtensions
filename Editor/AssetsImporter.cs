@@ -11,7 +11,7 @@ namespace GameLoversEditor.AssetsImporter
 	[CreateAssetMenu(fileName = "AssetsImporter", menuName = "ScriptableObjects/Editor/AssetsImporter")]
 	public class AssetsImporter : ScriptableObject
 	{
-		public static bool AutoImportOnRefresh;
+		public static bool AutoUpdateOnRefresh;
 		
 		[MenuItem("Tools/Assets Importer/Select AssetsImporter.asset")]
 		private static void SelectAssetsImporter()

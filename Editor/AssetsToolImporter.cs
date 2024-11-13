@@ -22,13 +22,16 @@ namespace GameLoversEditor.AssetsImporter
 		
 		private void Awake()
 		{
-			_importers = GetAllImporters();
+			if (AssetsImporter.AutoUpdateOnRefresh)
+			{
+				_importers = GetAllImporters();
+			}
 		}
 		
 		[DidReloadScripts]
 		public static void OnCompileScripts()
 		{
-			if(AssetsImporter.AutoImportOnRefresh)
+			if(AssetsImporter.AutoUpdateOnRefresh)
 			{
 				_importers = GetAllImporters();
 			}
@@ -37,21 +40,24 @@ namespace GameLoversEditor.AssetsImporter
 		[MenuItem(TOGGLE_PATH)]
 		private static void ToggleAutoImport()
 		{
-			AssetsImporter.AutoImportOnRefresh = !AssetsImporter.AutoImportOnRefresh;
-			Menu.SetChecked(TOGGLE_PATH, AssetsImporter.AutoImportOnRefresh);
+			AssetsImporter.AutoUpdateOnRefresh = !AssetsImporter.AutoUpdateOnRefresh;
+			Menu.SetChecked(TOGGLE_PATH, AssetsImporter.AutoUpdateOnRefresh);
 		}
 
 		[MenuItem(TOGGLE_PATH, true)]
 		private static bool ValidateAutoImport()
 		{
-			Menu.SetChecked(TOGGLE_PATH, AssetsImporter.AutoImportOnRefresh);
+			Menu.SetChecked(TOGGLE_PATH, AssetsImporter.AutoUpdateOnRefresh);
 			return true;
 		}
 
 		[MenuItem("Tools/Assets Importer/Get All Importers")]
-		private static void ImportAllImporters()
+		private static void UpdateAllImporters()
 		{
 			_importers = GetAllImporters();
+
+			AssetDatabase.SaveAssets();
+			AssetDatabase.Refresh();
 		}
 
 		[MenuItem("Tools/Assets Importer/Import Assets Data")]
@@ -70,17 +76,24 @@ namespace GameLoversEditor.AssetsImporter
 		
 		/// <inheritdoc />
 		public override void OnInspectorGUI()
-		{		if (_importers == null)
+		{
+			var typeCheck = typeof(IAssetConfigsImporter);
+			var tool = (AssetsImporter) target;
+
+			AssetsImporter.AutoUpdateOnRefresh = GUILayout.Toggle(AssetsImporter.AutoUpdateOnRefresh, "Toggle Auto Update on Refresh (Post Script Compilation)");
+			EditorGUILayout.HelpBox("Click on the 'Import All Importers' if you see any importer missing", MessageType.Info);
+
+			if (GUILayout.Button("Update All Importers"))
+			{
+				UpdateAllImporters();
+			}
+
+			if (_importers == null)
 			{
 				// Not yet initialized. Will initialized as soon has all scripts finish compiling
 				return;
 			}
 
-			var typeCheck = typeof(IScriptableObjectImporter);
-			var tool = (AssetsImporter) target;
-
-			GUILayout.Toggle(AssetsImporter.AutoImportOnRefresh, "Toggle Auto Import on Refresh (Post Script Compilation)");
-			
 			if (GUILayout.Button("Import Assets Data"))
 			{
 				foreach (var importer in _importers)
@@ -95,36 +108,49 @@ namespace GameLoversEditor.AssetsImporter
 			{
 				EditorGUILayout.Space();
 				EditorGUILayout.BeginHorizontal();
-				//EditorGUILayout.PrefixLabel(importer.Type.Name, GUIStyle.);
 				EditorGUILayout.LabelField(importer.Type.Name, EditorStyles.boldLabel);
 
 				if (GUILayout.Button(string.IsNullOrEmpty(importer.AssetsFolderPath) ? "Set Path" : "Update Path"))
 				{
-					var scriptableObject = GetScriptableObject(importer);
+					var path = EditorUtility.OpenFolderPanel("Select Folder Path", Application.dataPath, "");
 
-					var path = EditorUtility.OpenFolderPanel("Select Folder Path", scriptableObject.AssetsFolderPath,"");
-					scriptableObject.AssetsFolderPath = path.Substring(path.IndexOf("Assets/", StringComparison.Ordinal));
-					importer.AssetsFolderPath = scriptableObject.AssetsFolderPath;
+					if(string.IsNullOrEmpty(path))
+					{
+						return;
+					}
 
-					importer.Importer.Import();
+					path = path.Substring(path.IndexOf("Assets/", StringComparison.Ordinal));
+					importer.AssetsFolderPath = path;
+
+					importer.Importer.Import(path);
 					AssetDatabase.SaveAssets();
 					AssetDatabase.Refresh();
+					Repaint();
 				}
 				
 				EditorGUILayout.EndHorizontal();
 				EditorGUILayout.LabelField(string.IsNullOrEmpty(importer.AssetsFolderPath) ? "< NO PATH SET>" : importer.AssetsFolderPath);
 				EditorGUILayout.BeginHorizontal();
 				
-				if (GUILayout.Button("Import"))
+				if (importer.Importer is IAssetConfigsGeneratorImporter)
 				{
-					importer.Importer.Import();
-					AssetDatabase.SaveAssets();
-					AssetDatabase.Refresh();
+					EditorGUILayout.LabelField("This is a Code Generator Importer. Click on 'Set Path' to generate the missing scripts", EditorStyles.boldLabel);
 				}
-				if(typeCheck.IsAssignableFrom(importer.Type) && GUILayout.Button("Select Object"))
+				else
 				{
-					Selection.activeObject = GetScriptableObject(importer);
+					if(GUILayout.Button("Import"))
+					{
+						importer.Importer.Import();
+						AssetDatabase.SaveAssets();
+						AssetDatabase.Refresh();
+					}
+					if (typeCheck.IsAssignableFrom(importer.Type) && GUILayout.Button("Select Object") &&
+						TryGetScriptableObject(importer.Importer.ScriptableObjectType, out var selectedObject))
+					{
+						Selection.activeObject = selectedObject;
+					}
 				}
+				
 				EditorGUILayout.EndHorizontal();
 			}
 		}
@@ -140,10 +166,14 @@ namespace GameLoversEditor.AssetsImporter
 				{
 					if (!type.IsAbstract && !type.IsInterface && importerInterface.IsAssignableFrom(type))
 					{
+						var importer = Activator.CreateInstance(type) as IAssetConfigsImporter;
+
+						TryGetScriptableObject(importer.ScriptableObjectType, out var scriptableObject);
 						importers.Add(new ImportData
 						{
 							Type = type,
-							Importer = Activator.CreateInstance(type) as IAssetConfigsImporter
+							Importer = importer,
+							AssetsFolderPath = scriptableObject?.AssetsFolderPath
 						});
 					}
 				}
@@ -152,22 +182,30 @@ namespace GameLoversEditor.AssetsImporter
 			return importers;
 		}
 
-		private static AssetConfigsScriptableObject GetScriptableObject(ImportData data)
+		private static bool TryGetScriptableObject(Type type, out AssetConfigsScriptableObject scriptableObject)
 		{
-			var scriptableObjectType = data.Importer.ScriptableObjectType;
-			var assets = AssetDatabase.FindAssets($"t:{scriptableObjectType?.Name}");
-			var scriptableObject = assets.Length > 0 ? 
-				                       AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(assets[0]), scriptableObjectType) :
-				                       CreateInstance(scriptableObjectType);
+			var assets = AssetDatabase.FindAssets($"t:{type?.Name}");
+			var obj = assets.Length > 0 ?
+				AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(assets[0]), type) :
+				CreateInstance(type);
 
-			if (assets.Length == 0 && scriptableObjectType != null)
+			if (obj == null)
 			{
-				AssetDatabase.CreateAsset(scriptableObject, $"Assets/{scriptableObjectType.Name}.asset");
+				scriptableObject = null;
+
+				return false;
+			}
+
+			scriptableObject = obj as AssetConfigsScriptableObject;
+
+			if (assets.Length == 0 && type != null)
+			{
+				AssetDatabase.CreateAsset(scriptableObject, $"Assets/{type.Name}.asset");
 				AssetDatabase.SaveAssets();
 				AssetDatabase.Refresh();
 			}
 
-			return scriptableObject as AssetConfigsScriptableObject;
+			return true;
 		}
 
 		private class ImportData
