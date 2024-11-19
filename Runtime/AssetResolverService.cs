@@ -40,7 +40,7 @@ namespace GameLovers.AssetsImporter
 		/// Loads asynchronously a <see cref="Scene"/> mapped with the given <paramref name="id"/> and the given info.
 		/// It will also return the result in the provided <paramref name="onLoadCallback"/> when the loading is complete
 		/// </summary>
-		UniTask<SceneInstance> LoadScene<TId>(TId id, LoadSceneMode loadMode = LoadSceneMode.Single,
+		UniTask<SceneInstance> LoadSceneAsync<TId>(TId id, LoadSceneMode loadMode = LoadSceneMode.Single,
 											bool activateOnLoad = true,
 											bool setActive = true, Action<TId, SceneInstance> onLoadCallback = null);
 
@@ -62,7 +62,7 @@ namespace GameLovers.AssetsImporter
 		/// Unloads asynchronously a <see cref="Scene"/> mapped with the given <paramref name="id"/>.
 		/// It will also return the result in the provided <paramref name="onUnloadCallback"/> when the loading is complete
 		/// </summary>
-		UniTask UnloadScene<TId>(TId id, Action<TId, SceneInstance> onUnloadCallback = null);
+		UniTask UnloadSceneAsync<TId>(TId id, Action<TId> onUnloadCallback = null);
 
 		/// <summary>
 		/// Unloads all the asset reference of the given <typeparamref name="TId"/> type.
@@ -133,7 +133,7 @@ namespace GameLovers.AssetsImporter
 		private AudioClip _errorClip;
 
 		/// <inheritdoc />
-		public async UniTask<SceneInstance> LoadScene<TId>(TId id, LoadSceneMode loadMode = LoadSceneMode.Single,
+		public async UniTask<SceneInstance> LoadSceneAsync<TId>(TId id, LoadSceneMode loadMode = LoadSceneMode.Single,
 														bool activateOnLoad = true, bool setActive = true,
 														Action<TId, SceneInstance> onLoadCallback = null)
 		{
@@ -260,7 +260,7 @@ namespace GameLovers.AssetsImporter
 		}
 
 		/// <inheritdoc />
-		public async UniTask UnloadScene<TId>(TId id, Action<TId, SceneInstance> onUnloadCallback = null)
+		public async UniTask UnloadSceneAsync<TId>(TId id, Action<TId> onUnloadCallback = null)
 		{
 			if (!TryGetAssetReference<TId, Scene>(id, out var assetReference))
 			{
@@ -269,11 +269,9 @@ namespace GameLovers.AssetsImporter
 				return;
 			}
 
-			var sceneOperation = assetReference.OperationHandle.Convert<SceneInstance>();
-
 			await assetReference.UnLoadScene().ToUniTask();
 
-			onUnloadCallback?.Invoke(id, sceneOperation.Result);
+			onUnloadCallback?.Invoke(id);
 		}
 
 		/// <inheritdoc />
