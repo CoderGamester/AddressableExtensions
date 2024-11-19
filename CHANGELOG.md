@@ -4,6 +4,15 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2024-11-19
+
+**Changed**:
+- Removed unecessary *UniTaskExtension* as it doesn't work properly
+- Renamed all load and unload methods from *AssetResolverService* with async prefix as they all are executed asynchronously
+
+**Fixed**:
+- Fixed the *AssetResolverService.UnloadScene* method that was crashing when sending with a callback
+
 ## [0.5.0] - 2024-11-13
 
 **New**:
